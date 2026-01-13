@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Half_nothing MIT License
+// Copyright (c) 2025-2026 Half_nothing MIT License
 
 #include "fsuipc_client.h"
 #include <cstring>
@@ -151,6 +151,10 @@ namespace FSUIPC {
         state->pNext += sizeof(WriteHeader) + size;
         clearError();
         return true;
+    }
+
+    bool FSUIPCClient::writeDWORD(WriteDataDWORD &data) {
+        return write(data.offset, data.size, &data.data);
     }
 
     bool FSUIPCClient::process() {
@@ -357,11 +361,11 @@ namespace FSUIPC {
         return lastError;
     }
 
-    const char * FSUIPCClient::getLastErrorMessage() {
+    const char *FSUIPCClient::getLastErrorMessage() {
         return lastErrorMessage;
     }
 
-    void FSUIPCClient::setLastError(Error error, const char * errorMessage) {
+    void FSUIPCClient::setLastError(Error error, const char *errorMessage) {
         lastError = error;
         lastErrorMessage = errorMessage;
     }

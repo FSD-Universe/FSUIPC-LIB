@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Half_nothing MIT License
+// Copyright (c) 2025-2026 Half_nothing MIT License
 
 #include "fsuipc_client.h"
 #include "fsuipc_export.h"
@@ -21,6 +21,11 @@ FSUIPC::COM2StandbyVer2 com2StandbyVer2;
 
 FSUIPC::RadioSwitch radioSwitch;
 
+FSUIPC::WriteDataDWORD com1Ver1(com1ActiveVer1.offset, 0);
+FSUIPC::WriteDataDWORD com1Ver2(com1ActiveVer2.offset, 0);
+FSUIPC::WriteDataDWORD com2Ver1(com2ActiveVer1.offset, 0);
+FSUIPC::WriteDataDWORD com2Ver2(com2ActiveVer2.offset, 0);
+
 uint32_t com1ActiveLast = 0;
 uint32_t com1StandbyLast = 0;
 uint32_t com2ActiveLast = 0;
@@ -29,6 +34,8 @@ uint32_t com1Active = 0;
 uint32_t com1Standby = 0;
 uint32_t com2Active = 0;
 uint32_t com2Standby = 0;
+
+uint32_t toBCDNumber(int);
 
 uint32_t processNumber(int);
 
@@ -107,8 +114,86 @@ DLL_EXPORT [[maybe_unused]] ReturnValue *GetConnectionState() {
     return returnValue;
 }
 
+DLL_EXPORT [[maybe_unused]] ReturnValue *SetCom1Frequency(int frequency) {
+    auto *returnValue = new ReturnValue();
+    if (status != FSUIPC::CONNECTED) {
+        returnValue->requestStatus = false;
+        returnValue->errMessage = "FSUIPC not connected";
+        return returnValue;
+    }
+    if (apiVersion == FSUIPC::ApiVersion::API_UNKNOWN) {
+        returnValue->requestStatus = false;
+        returnValue->errMessage = "Unsupported FSUIPC api version";
+        return returnValue;
+    }
+    if (frequency > 100000) {
+        frequency -= 100000;
+    }
+    frequency /= 10;
+    if (apiVersion == FSUIPC::ApiVersion::API_VER1) {
+        com1Ver1.data = toBCDNumber(frequency);
+        client.writeDWORD(com1Ver1);
+    } else {
+        com1Ver2.data = toBCDNumber(frequency);
+        client.writeDWORD(com1Ver2);
+    }
+    client.process();
+    if (client.getLastError() == FSUIPC::Error::OK) {
+        returnValue->requestStatus = true;
+        return returnValue;
+    }
+    returnValue->errMessage = client.getLastErrorMessage();
+    return returnValue;
+}
+
+DLL_EXPORT [[maybe_unused]] ReturnValue *SetCom2Frequency(int frequency) {
+    auto *returnValue = new ReturnValue();
+    if (status != FSUIPC::CONNECTED) {
+        returnValue->requestStatus = false;
+        returnValue->errMessage = "FSUIPC not connected";
+        return returnValue;
+    }
+    if (apiVersion == FSUIPC::ApiVersion::API_UNKNOWN) {
+        returnValue->requestStatus = false;
+        returnValue->errMessage = "Unsupported FSUIPC api version";
+        return returnValue;
+    }
+    if (frequency > 100000) {
+        frequency -= 100000;
+    }
+    frequency /= 10;
+    if (apiVersion == FSUIPC::ApiVersion::API_VER1) {
+        com2Ver1.data = toBCDNumber(frequency);
+        client.writeDWORD(com2Ver1);
+    } else {
+        com2Ver2.data = toBCDNumber(frequency);
+        client.writeDWORD(com2Ver2);
+    }
+    client.process();
+    if (client.getLastError() == FSUIPC::Error::OK) {
+        returnValue->requestStatus = true;
+        return returnValue;
+    }
+    returnValue->errMessage = client.getLastErrorMessage();
+    return returnValue;
+}
+
 DLL_EXPORT [[maybe_unused]] void FreeMemory(ReturnValue *pointer) {
     delete pointer;
+}
+
+uint32_t toBCDNumber(int n) {
+    uint32_t bcd = 0;
+    uint8_t shift = 0;
+
+    while (n > 0) {
+        uint8_t digit = n % 10;
+        bcd |= (digit << (shift * 4));
+        n /= 10;
+        shift++;
+    }
+
+    return bcd;
 }
 
 uint32_t processNumber(int n) {

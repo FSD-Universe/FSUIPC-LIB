@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Half_nothing MIT License
+// Copyright (c) 2025-2026 Half_nothing MIT License
 
 #pragma once
 
@@ -35,6 +35,8 @@ namespace FSUIPC {
         bool readDWORD(ReadDataDWORD &data);
 
         bool write(uint32_t offset, size_t size, const void *source);
+
+        bool writeDWORD(WriteDataDWORD &data);
 
         bool process();
 

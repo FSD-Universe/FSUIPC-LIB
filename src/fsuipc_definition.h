@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Half_nothing MIT License
+// Copyright (c) 2025-2026 Half_nothing MIT License
 
 #pragma once
 
@@ -129,7 +129,7 @@ namespace FSUIPC {
         explicit constexpr ReadDataBYTE(uint32_t off) : offset(off), size(sizeof(BYTE)), data(0) {}
     };
 
-    struct RadioSwitch: ReadDataBYTE {
+    struct RadioSwitch : ReadDataBYTE {
         RadioSwitch() : ReadDataBYTE(0x3122) {}
     };
 
@@ -155,6 +155,14 @@ namespace FSUIPC {
 
     struct COM2StandbyVer2 : ReadDataDWORD {
         COM2StandbyVer2() : ReadDataDWORD(0x05D0) {}
+    };
+
+    struct WriteDataDWORD {
+        uint32_t offset;
+        size_t size;
+        DWORD data;
+
+        constexpr WriteDataDWORD(uint32_t offset, DWORD data) : offset(offset), size(sizeof(DWORD)), data(data) {}
     };
 
     class FSUIPCClient;

@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Half_nothing MIT License
+// Copyright (c) 2025-2026 Half_nothing MIT License
 
 #pragma once
 
@@ -18,4 +18,6 @@ DLL_EXPORT ReturnValue *OpenFSUIPCClient();
 DLL_EXPORT ReturnValue *ReadFrequencyInfo();
 DLL_EXPORT ReturnValue *CloseFSUIPCClient();
 DLL_EXPORT ReturnValue *GetConnectionState();
+DLL_EXPORT ReturnValue *SetCom1Frequency(int);
+DLL_EXPORT ReturnValue *SetCom2Frequency(int);
 DLL_EXPORT void FreeMemory(ReturnValue *);

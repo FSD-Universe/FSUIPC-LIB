@@ -21,9 +21,9 @@ FSUIPC::COM2StandbyVer2 com2StandbyVer2;
 
 FSUIPC::RadioSwitch radioSwitch;
 
-FSUIPC::WriteDataDWORD com1Ver1(com1ActiveVer1.offset, 0);
+FSUIPC::WriteDataWORD com1Ver1(com1ActiveVer1.offset, 0);
 FSUIPC::WriteDataDWORD com1Ver2(com1ActiveVer2.offset, 0);
-FSUIPC::WriteDataDWORD com2Ver1(com2ActiveVer1.offset, 0);
+FSUIPC::WriteDataWORD com2Ver1(com2ActiveVer1.offset, 0);
 FSUIPC::WriteDataDWORD com2Ver2(com2ActiveVer2.offset, 0);
 
 uint32_t com1ActiveLast = 0;
@@ -49,29 +49,46 @@ void readFrequencyVer2();
 
 void processFrequencyData();
 
-DLL_EXPORT [[maybe_unused]] ReturnValue *OpenFSUIPCClient() {
-    auto *returnValue = new ReturnValue();
-    if (client.open()) {
-        returnValue->requestStatus = true;
-        updateSimConnection(FSUIPC::CONNECTED);
-        apiVersion = client.getApiVersion();
-    } else {
-        returnValue->errMessage = client.getLastErrorMessage();
+DLL_EXPORT [[maybe_unused]] Version *OpenFSUIPCClient() {
+    auto *res = new Version();
+    if (!client.open()) {
+        res->errMessage = client.getLastErrorMessage();
+        return res;
     }
-    return returnValue;
+    res->requestStatus = true;
+    updateSimConnection(FSUIPC::CONNECTED);
+    apiVersion = client.getApiVersion();
+    res->apiVersion = apiVersion;
+    FSUIPC::VersionInfo version{};
+    if (!client.getVersion(version)) {
+        res->errMessage = client.getLastErrorMessage();
+        return res;
+    }
+    res->simulatorType = version.simulator;
+    res->fsuipcVersion = version.fsuipc;
+    return res;
 }
 
-DLL_EXPORT [[maybe_unused]] ReturnValue *ReadFrequencyInfo() {
-    auto *returnValue = new ReturnValue();
+DLL_EXPORT [[maybe_unused]] BaseModel *CloseFSUIPCClient() {
+    auto *res = new BaseModel();
+    disconnect();
+    if (client.getLastError() == FSUIPC::Error::OK) {
+        res->requestStatus = true;
+        return res;
+    }
+    res->errMessage = client.getLastErrorMessage();
+    return res;
+}
+
+DLL_EXPORT [[maybe_unused]] Frequencies *ReadFrequencyInfo() {
+    auto *res = new Frequencies();
     if (status != FSUIPC::CONNECTED) {
-        returnValue->requestStatus = false;
-        returnValue->errMessage = "FSUIPC not connected";
-        return returnValue;
+        res->errMessage = "FSUIPC not connected";
+        return res;
     }
     if (apiVersion == FSUIPC::ApiVersion::API_UNKNOWN) {
-        returnValue->requestStatus = false;
-        returnValue->errMessage = "Unsupported FSUIPC api version";
-        return returnValue;
+        res->errMessage = "Unsupported FSUIPC api version";
+        return res;
     }
     client.readBYTE(radioSwitch);
     if (apiVersion == FSUIPC::ApiVersion::API_VER1) {
@@ -81,104 +98,109 @@ DLL_EXPORT [[maybe_unused]] ReturnValue *ReadFrequencyInfo() {
     }
     processFrequencyData();
 
-    returnValue->frequency[0] = com1Active;
-    returnValue->frequency[1] = com1Standby;
-    returnValue->frequency[2] = com2Active;
-    returnValue->frequency[3] = com2Standby;
+    res->frequency[0] = com1Active;
+    res->frequency[1] = com1Standby;
+    res->frequency[2] = com2Active;
+    res->frequency[3] = com2Standby;
 
-    returnValue->frequencyFlag = radioSwitch.data;
+    res->frequencyFlag = radioSwitch.data;
 
     if (client.getLastError() == FSUIPC::Error::OK) {
-        returnValue->requestStatus = true;
-        return returnValue;
+        res->requestStatus = true;
+        return res;
     }
-    returnValue->errMessage = client.getLastErrorMessage();
-    return returnValue;
+    res->errMessage = client.getLastErrorMessage();
+    return res;
 }
 
-DLL_EXPORT [[maybe_unused]] ReturnValue *CloseFSUIPCClient() {
-    auto *returnValue = new ReturnValue();
-    disconnect();
-    if (client.getLastError() == FSUIPC::Error::OK) {
-        returnValue->requestStatus = true;
-        return returnValue;
-    }
-    returnValue->errMessage = client.getLastErrorMessage();
-    return returnValue;
+DLL_EXPORT [[maybe_unused]] ConnectionStatus *GetConnectionState() {
+    auto *res = new ConnectionStatus();
+    res->requestStatus = true;
+    res->status = status;
+    return res;
 }
 
-DLL_EXPORT [[maybe_unused]] ReturnValue *GetConnectionState() {
-    auto *returnValue = new ReturnValue();
-    returnValue->requestStatus = true;
-    returnValue->status = status;
-    return returnValue;
-}
-
-DLL_EXPORT [[maybe_unused]] ReturnValue *SetCom1Frequency(int frequency) {
-    auto *returnValue = new ReturnValue();
+DLL_EXPORT [[maybe_unused]] Version *GetFSUIPCVersionInfo() {
+    auto *res = new Version();
     if (status != FSUIPC::CONNECTED) {
-        returnValue->requestStatus = false;
-        returnValue->errMessage = "FSUIPC not connected";
-        return returnValue;
+        res->errMessage = "FSUIPC not connected";
+        return res;
     }
-    if (apiVersion == FSUIPC::ApiVersion::API_UNKNOWN) {
-        returnValue->requestStatus = false;
-        returnValue->errMessage = "Unsupported FSUIPC api version";
-        return returnValue;
+    FSUIPC::VersionInfo version{};
+    if (!client.getVersion(version)) {
+        res->errMessage = client.getLastErrorMessage();
+        return res;
     }
-    if (frequency > 100000) {
-        frequency -= 100000;
+    res->apiVersion = apiVersion;
+    res->simulatorType = version.simulator;
+    res->fsuipcVersion = version.fsuipc;
+    return res;
+}
+
+DLL_EXPORT [[maybe_unused]] BaseModel *SetCom1Frequency(int frequency) {
+    auto *res = new BaseModel();
+    if (status != FSUIPC::CONNECTED) {
+        res->errMessage = "FSUIPC not connected";
+        return res;
     }
-    frequency /= 10;
-    if (apiVersion == FSUIPC::ApiVersion::API_VER1) {
-        com1Ver1.data = toBCDNumber(frequency);
-        client.writeDWORD(com1Ver1);
-    } else {
-        com1Ver2.data = toBCDNumber(frequency);
-        client.writeDWORD(com1Ver2);
+    switch (apiVersion) {
+        case FSUIPC::ApiVersion::API_UNKNOWN:
+            res->errMessage = "Unsupported FSUIPC api version";
+            return res;
+        case FSUIPC::ApiVersion::API_VER1:
+            if (frequency > 100000) {
+                frequency -= 100000;
+            }
+            com1Ver1.data = toBCDNumber(frequency / 10);
+            client.writeWORD(com1Ver1);
+            break;
+        case FSUIPC::ApiVersion::API_VER2:
+            com1Ver2.data = frequency * 1000;
+            client.writeDWORD(com1Ver2);
+            break;
     }
     client.process();
     if (client.getLastError() == FSUIPC::Error::OK) {
-        returnValue->requestStatus = true;
-        return returnValue;
+        res->requestStatus = true;
+        return res;
     }
-    returnValue->errMessage = client.getLastErrorMessage();
-    return returnValue;
+    res->errMessage = client.getLastErrorMessage();
+    return res;
 }
 
-DLL_EXPORT [[maybe_unused]] ReturnValue *SetCom2Frequency(int frequency) {
-    auto *returnValue = new ReturnValue();
+DLL_EXPORT [[maybe_unused]] BaseModel *SetCom2Frequency(int frequency) {
+    auto *res = new BaseModel();
     if (status != FSUIPC::CONNECTED) {
-        returnValue->requestStatus = false;
-        returnValue->errMessage = "FSUIPC not connected";
-        return returnValue;
+        res->errMessage = "FSUIPC not connected";
+        return res;
     }
-    if (apiVersion == FSUIPC::ApiVersion::API_UNKNOWN) {
-        returnValue->requestStatus = false;
-        returnValue->errMessage = "Unsupported FSUIPC api version";
-        return returnValue;
-    }
-    if (frequency > 100000) {
-        frequency -= 100000;
-    }
-    frequency /= 10;
-    if (apiVersion == FSUIPC::ApiVersion::API_VER1) {
-        com2Ver1.data = toBCDNumber(frequency);
-        client.writeDWORD(com2Ver1);
-    } else {
-        com2Ver2.data = toBCDNumber(frequency);
-        client.writeDWORD(com2Ver2);
+    switch (apiVersion) {
+        case FSUIPC::ApiVersion::API_UNKNOWN:
+            res->errMessage = "Unsupported FSUIPC api version";
+            return res;
+        case FSUIPC::ApiVersion::API_VER1:
+            if (frequency > 100000) {
+                frequency -= 100000;
+            }
+            frequency /= 10;
+            com2Ver1.data = toBCDNumber(frequency);
+            client.writeWORD(com2Ver1);
+            break;
+        case FSUIPC::ApiVersion::API_VER2:
+            com2Ver2.data = frequency * 1000;
+            client.writeDWORD(com2Ver2);
+            break;
     }
     client.process();
     if (client.getLastError() == FSUIPC::Error::OK) {
-        returnValue->requestStatus = true;
-        return returnValue;
+        res->requestStatus = true;
+        return res;
     }
-    returnValue->errMessage = client.getLastErrorMessage();
-    return returnValue;
+    res->errMessage = client.getLastErrorMessage();
+    return res;
 }
 
-DLL_EXPORT [[maybe_unused]] void FreeMemory(ReturnValue *pointer) {
+DLL_EXPORT [[maybe_unused]] void FreeMemory(BaseModel *pointer) {
     delete pointer;
 }
 

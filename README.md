@@ -23,7 +23,7 @@ class CReturnValue(Structure):
 
 
 @dataclass
-class ReturnValue:
+class BaseModel:
     requestStatus: bool
     errMessage: str
     frequency: list[int]
@@ -41,25 +41,25 @@ class FSUIPCClient:
         fsuipc_lib.FreeMemory.restype = None
         self._fsuipc_lib = fsuipc_lib
 
-    def open_fsuipc_client(self) -> ReturnValue:
+    def open_fsuipc_client(self) -> BaseModel:
         return self._call_function("OpenFSUIPCClient")
 
-    def close_fsuipc_client(self) -> ReturnValue:
+    def close_fsuipc_client(self) -> BaseModel:
         return self._call_function("CloseFSUIPCClient")
 
-    def get_connection_state(self) -> ReturnValue:
+    def get_connection_state(self) -> BaseModel:
         return self._call_function("GetConnectionState")
 
-    def get_frequency(self) -> ReturnValue:
+    def get_frequency(self) -> BaseModel:
         return self._call_function("ReadFrequencyInfo")
 
-    def _call_function(self, function_name: str) -> ReturnValue:
+    def _call_function(self, function_name: str) -> BaseModel:
         if not hasattr(self._fsuipc_lib, function_name):
             raise AttributeError(f"Function {function_name} not available")
         function = getattr(self._fsuipc_lib, function_name)
         function_return = function()
         try:
-            result = ReturnValue(function_return.contents.requestStatus,
+            result = BaseModel(function_return.contents.requestStatus,
                                  function_return.contents.errMessage.decode(),
                                  function_return.contents.frequency[:],
                                  function_return.contents.status)

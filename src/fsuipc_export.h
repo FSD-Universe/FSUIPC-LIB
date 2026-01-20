@@ -6,18 +6,39 @@
 
 #define DLL_EXPORT extern "C" __declspec(dllexport)
 
-typedef struct ReturnValue {
+struct BaseModel {
     bool requestStatus{false};
     const char *errMessage{"No error found"};
+
+    virtual ~BaseModel() = default;
+};
+
+struct ConnectionStatus : public BaseModel {
+    uint32_t status{FSUIPC::SimConnectionStatus::NO_CONNECTION};
+
+    ~ConnectionStatus() = default;
+};
+
+struct Frequencies : public BaseModel {
     uint8_t frequencyFlag{};
     uint32_t frequency[4]{};
-    uint32_t status{FSUIPC::SimConnectionStatus::NO_CONNECTION};
-} ReturnValue;
 
-DLL_EXPORT ReturnValue *OpenFSUIPCClient();
-DLL_EXPORT ReturnValue *ReadFrequencyInfo();
-DLL_EXPORT ReturnValue *CloseFSUIPCClient();
-DLL_EXPORT ReturnValue *GetConnectionState();
-DLL_EXPORT ReturnValue *SetCom1Frequency(int);
-DLL_EXPORT ReturnValue *SetCom2Frequency(int);
-DLL_EXPORT void FreeMemory(ReturnValue *);
+    ~Frequencies() = default;
+};
+
+struct Version : public BaseModel {
+    uint16_t simulatorType;
+    uint32_t fsuipcVersion;
+    uint8_t apiVersion;
+
+    ~Version() = default;
+};
+
+DLL_EXPORT Version *OpenFSUIPCClient();
+DLL_EXPORT BaseModel *CloseFSUIPCClient();
+DLL_EXPORT Frequencies *ReadFrequencyInfo();
+DLL_EXPORT ConnectionStatus *GetConnectionState();
+DLL_EXPORT Version *GetFSUIPCVersionInfo();
+DLL_EXPORT BaseModel *SetCom1Frequency(int);
+DLL_EXPORT BaseModel *SetCom2Frequency(int);
+DLL_EXPORT void FreeMemory(BaseModel *);

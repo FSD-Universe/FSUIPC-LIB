@@ -50,7 +50,7 @@ namespace FSUIPC {
 
         state->reset();
         try {
-            if (initializeConnection(requested) && verifyVersion(requested)) {
+            if (initializeConnection() && verifyVersion(requested)) {
                 checkApiVersion();
                 clearError();
                 return true;
@@ -153,6 +153,10 @@ namespace FSUIPC {
         return true;
     }
 
+    bool FSUIPCClient::writeWORD(WriteDataWORD &data) {
+        return write(data.offset, data.size, &data.data);
+    }
+
     bool FSUIPCClient::writeDWORD(WriteDataDWORD &data) {
         return write(data.offset, data.size, &data.data);
     }
@@ -177,7 +181,7 @@ namespace FSUIPC {
         return true;
     }
 
-    bool FSUIPCClient::initializeConnection(Simulator requested) {
+    bool FSUIPCClient::initializeConnection() {
         static int nTry = 0;
         nTry++;
 
@@ -239,15 +243,15 @@ namespace FSUIPC {
 
         while (attempts++ < maxAttempts) {
             read(0x3304, 4, &state->version.fsuipc);
-            read(0x3308, 4, &state->version.simulator);
+            read(0x3308, 2, &state->version.simulator);
             if (attempts == 1) {
                 write(0x330a, 2, &state->version.library);
             }
             process();
             if (state->version.fsuipc != 0 &&
+                state->version.fsuipc >= 0x19980005 &&
                 state->version.simulator != 0 &&
-                state->version.simulator >= 0x19980005 &&
-                (state->version.simulator & 0xFFFF0000) == 0xFADE0000) {
+                state->version.library == 0xFADE) {
                 break;
             }
             Sleep(100);
@@ -256,8 +260,6 @@ namespace FSUIPC {
         if (attempts >= maxAttempts) {
             return false;
         }
-
-        state->version.simulator &= 0xFFFF;
 
         if (requested != Simulator::ANY &&
             static_cast<uint32_t>(requested) != state->version.simulator) {

@@ -36,6 +36,8 @@ namespace FSUIPC {
 
         bool write(uint32_t offset, size_t size, const void *source);
 
+        bool writeWORD(WriteDataWORD &data);
+
         bool writeDWORD(WriteDataDWORD &data);
 
         bool process();
@@ -59,7 +61,7 @@ namespace FSUIPC {
 
         void setLastError(Error error, const char *errorMessage);
 
-        bool initializeConnection(Simulator requested);
+        bool initializeConnection();
 
         bool verifyVersion(Simulator requested);
 

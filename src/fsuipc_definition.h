@@ -60,8 +60,8 @@ namespace FSUIPC {
 
     struct VersionInfo {
         uint32_t fsuipc;
-        uint32_t simulator;
-        uint32_t library;
+        uint16_t simulator;
+        uint16_t library;
     };
 
     enum class MessageType {
@@ -155,6 +155,14 @@ namespace FSUIPC {
 
     struct COM2StandbyVer2 : ReadDataDWORD {
         COM2StandbyVer2() : ReadDataDWORD(0x05D0) {}
+    };
+
+    struct WriteDataWORD {
+        uint32_t offset;
+        size_t size;
+        WORD data;
+
+        constexpr WriteDataWORD(uint32_t offset, WORD data) : offset(offset), size(sizeof(WORD)), data(data) {}
     };
 
     struct WriteDataDWORD {

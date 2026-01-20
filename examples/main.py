@@ -2,6 +2,7 @@
 #  SPDX-License-Identifier: MIT
 import asyncio
 from pathlib import Path
+from sys import platform
 from typing import Optional
 
 from fsuipc_client import FSUIPCClient
@@ -212,12 +213,24 @@ class FSUIPCCmd:
                 print(f"\n❌ 错误: {e}")
 
 
+def replace_suffix(path: Path) -> Path:
+    match platform:
+        case 'win32':
+            return path.with_suffix(".dll")
+        case 'darwin':
+            return path.with_suffix(".dylib")
+        case 'linux':
+            return path.with_suffix(".so")
+        case _:
+            raise OSError("unknown platform")
+
+
 def get_dll_path():
     root = Path(__file__).parent
-    dll_path = root / "libfsuipc.dll"
+    dll_path = replace_suffix(root / "libfsuipc")
     if dll_path.exists():
         return dll_path
-    build_dll_path = root.parent / "bin" / "libfsuipc.dll"
+    build_dll_path = replace_suffix(root.parent / "bin" / "libfsuipc")
     if build_dll_path.exists():
         return build_dll_path
     raise FileNotFoundError("libfsuipc.dll 不存在")

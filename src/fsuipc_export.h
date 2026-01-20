@@ -9,29 +9,21 @@
 struct BaseModel {
     bool requestStatus{false};
     const char *errMessage{"No error found"};
-
-    virtual ~BaseModel() = default;
 };
 
 struct ConnectionStatus : public BaseModel {
     uint32_t status{FSUIPC::SimConnectionStatus::NO_CONNECTION};
-
-    ~ConnectionStatus() = default;
 };
 
 struct Frequencies : public BaseModel {
     uint8_t frequencyFlag{};
     uint32_t frequency[4]{};
-
-    ~Frequencies() = default;
 };
 
 struct Version : public BaseModel {
-    uint16_t simulatorType;
-    uint32_t fsuipcVersion;
-    uint8_t apiVersion;
-
-    ~Version() = default;
+    uint16_t simulatorType{};
+    uint32_t fsuipcVersion{};
+    uint8_t apiVersion{};
 };
 
 DLL_EXPORT Version *OpenFSUIPCClient();

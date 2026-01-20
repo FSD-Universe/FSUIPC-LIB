@@ -244,9 +244,7 @@ namespace FSUIPC {
         while (attempts++ < maxAttempts) {
             read(0x3304, 4, &state->version.fsuipc);
             read(0x3308, 2, &state->version.simulator);
-            if (attempts == 1) {
-                write(0x330a, 2, &state->version.library);
-            }
+            read(0x330a, 2, &state->version.library);
             process();
             if (state->version.fsuipc != 0 &&
                 state->version.fsuipc >= 0x19980005 &&

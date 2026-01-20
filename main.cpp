@@ -4,6 +4,7 @@
 #include "fsuipc_export.h"
 #include <string>
 #include <sstream>
+#include <iostream>
 
 FSUIPC::FSUIPCClient client;
 FSUIPC::SimConnectionStatus status = FSUIPC::SimConnectionStatus::NO_CONNECTION;
